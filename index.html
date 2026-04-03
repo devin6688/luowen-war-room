@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>尧章人生RPG</title>
+<style>
+:root{--bg:#0a0e1a;--card:#141829;--primary:#6c5ce7;--gold:#f9ca24;--green:#00b894;--red:#e17055;--blue:#74b9ff;--text:#e0e0e0;--muted:#888;--border:#222;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:20px 16px 16px;position:relative;overflow:hidden;}
+.header::after{content:'';position:absolute;top:-50%;right:-30%;width:200px;height:200px;background:radial-gradient(circle,rgba(108,92,231,0.15),transparent);border-radius:50%;}
+.player-info{display:flex;align-items:center;gap:14px;position:relative;z-index:1;}
+.avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#a29bfe);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;border:2px solid var(--gold);}
+.player-name{font-size:18px;font-weight:700;}
+.player-title{font-size:12px;color:var(--gold);margin-top:2px;}
+.level-bar{margin-top:12px;position:relative;z-index:1;}
+.level-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.bar-bg{height:8px;background:#222;border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease;}
+.bar-exp{background:linear-gradient(90deg,var(--primary),#a29bfe);}
+
+.stats-row{display:flex;gap:8px;padding:12px 16px;}
+.stat-card{flex:1;background:var(--card);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border);}
+.stat-icon{font-size:20px;margin-bottom:4px;}
+.stat-value{font-size:20px;font-weight:700;}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.stat-wealth .stat-value{color:var(--gold);}
+.stat-intel .stat-value{color:var(--blue);}
+.stat-vital .stat-value{color:var(--green);}
+
+.section{padding:0 16px;margin-top:16px;}
+.section-title{font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.badge{background:var(--primary);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;}
+
+.quest-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);transition:all 0.3s;cursor:pointer;}
+.quest-card.done{opacity:0.5;border-color:var(--green);}
+.quest-card.done .quest-check{background:var(--green);border-color:var(--green);}
+.quest-card.done .quest-check::after{content:'';display:block;}
+.quest-check{width:24px;height:24px;min-width:24px;border-radius:50%;border:2px solid #444;display:flex;align-items:center;justify-content:center;transition:all 0.3s;}
+.quest-check::after{content:'';display:none;width:8px;height:8px;background:#fff;border-radius:50%;}
+.quest-info{flex:1;}
+.quest-name{font-size:14px;font-weight:500;}
+.quest-exp{font-size:12px;color:var(--gold);margin-top:2px;}
+.quest-cat{font-size:10px;padding:2px 6px;border-radius:6px;margin-left:auto;min-width:fit-content;}
+.cat-wealth{background:rgba(249,202,36,0.15);color:var(--gold);}
+.cat-intel{background:rgba(116,185,255,0.15);color:var(--blue);}
+.cat-vital{background:rgba(0,184,148,0.15);color:var(--green);}
+
+.debuff-bar{background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:10px;padding:10px 14px;margin:12px 16px 0;display:flex;align-items:center;gap:8px;}
+.debuff-bar .icon{font-size:18px;}
+.debuff-bar .text{font-size:12px;color:var(--red);}
+
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;cursor:pointer;opacity:0.5;transition:all 0.2s;}
+.tab.active{opacity:1;color:var(--primary);}
+.tab-icon{font-size:20px;}
+.tab-label{font-size:10px;}
+
+.page{display:none;}
+.page.active{display:block;}
+
+.radar-container{display:flex;justify-content:center;padding:20px 0;}
+canvas{max-width:280px;max-height:280px;}
+
+.achieve-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.achieve-card.locked{opacity:0.4;}
+.achieve-icon{font-size:28px;}
+.achieve-info{flex:1;}
+.achieve-name{font-size:14px;font-weight:600;}
+.achieve-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.achieve-reward{font-size:12px;color:var(--gold);}
+
+.shop-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;}
+.shop-card:active{transform:scale(0.98);}
+.shop-cost{background:rgba(249,202,36,0.15);color:var(--gold);font-size:12px;padding:4px 10px;border-radius:8px;margin-left:auto;font-weight:600;}
+
+.report-block{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid var(--border);}
+.report-title{font-size:14px;font-weight:600;margin-bottom:8px;}
+.report-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);}
+.report-row:last-child{border:none;}
+
+.input-row{display:flex;gap:8px;margin-top:12px;}
+.input-field{flex:1;background:#1a1f35;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:14px;}
+.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600;transition:all 0.2s;}
+.btn:active{transform:scale(0.96);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all 0.3s;pointer-events:none;}
+.toast.show{opacity:1;top:40px;}
+.toast.warn{background:var(--red);}
+
+.weight-log{max-height:200px;overflow-y:auto;margin-top:8px;}
+.weight-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);}
+
+.summary-num{font-size:32px;font-weight:700;text-align:center;margin:8px 0;}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:300;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border-radius:16px;padding:24px;width:85%;max-width:360px;text-align:center;}
+.modal h3{margin-bottom:12px;font-size:18px;}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:16px;}
+.modal .btn{width:100%;}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div id="modal" class="modal-overlay">
+<div class="modal">
+<h3 id="modal-title"></h3>
+<p id="modal-text"></p>
+<button class="btn" onclick="closeModal()">确定</button>
+</div>
+</div>
+
+<!-- 主页 -->
+<div id="page-home" class="page active">
+<div class="header">
+<div class="player-info">
+<div class="avatar">尧</div>
+<div>
+<div class="player-name">尧章</div>
+<div class="player-title" id="title-display">初出茅庐</div>
+</div>
+<div style="margin-left:auto;text-align:right;">
+<div style="font-size:24px;font-weight:700;color:var(--primary);" id="level-display">Lv.1</div>
+<div style="font-size:10px;color:var(--muted);">OPC战略架构师</div>
+</div>
+</div>
+<div class="level-bar">
+<div class="level-label"><span id="exp-label">EXP: 0 / 500</span><span id="next-level">下一级: Lv.5</span></div>
+<div class="bar-bg"><div class="bar-fill bar-exp" id="exp-bar" style="width:0%"></div></div>
+</div>
+</div>
+
+<div id="debuff-container"></div>
+
+<div class="stats-row">
+<div class="stat-card stat-wealth">
+<div class="stat-icon">&#x1F4B0;</div>
+<div class="stat-value" id="wealth-val">10</div>
+<div class="stat-label">财力</div>
+</div>
+<div class="stat-card stat-intel">
+<div class="stat-icon">&#x1F9E0;</div>
+<div class="stat-value" id="intel-val">25</div>
+<div class="stat-label">智力</div>
+</div>
+<div class="stat-card stat-vital">
+<div class="stat-icon">&#x1F4AA;</div>
+<div class="stat-value" id="vital-val">15</div>
+<div class="stat-label">体力</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title">今日任务 <span class="badge" id="quest-count">0/15</span></div>
+<div id="quest-list"></div>
+</div>
+</div>
+
+<!-- 属性页 -->
+<div id="page-stats" class="page">
+<div style="padding:20px 16px;">
+<div class="section-title" style="font-size:18px;">三维属性</div>
+<div class="radar-container"><canvas id="radar" width="280" height="280"></canvas></div>
+<div class="report-block">
+<div class="report-title">财力 WEALTH <span id="sub-wealth" style="float:right;color:var(--gold);"></span></div>
+<div class="report-row"><span>主动收入力</span><span id="s-active">5</span></div>
+<div class="report-row"><span>被动收入力</span><span id="s-passive">0</span></div>
+<div class="report-row"><span>资产积累值</span><span id="s-asset">5</span></div>
+</div>
+<div class="report-block">
+<div class="report-title">智力 INTEL <span id="sub-intel" style="float:right;color:var(--blue);"></span></div>
+<div class="report-row"><span>AI技术力</span><span id="s-aitech">10</span></div>
+<div class="report-row"><span>商业认知力</span><span id="s-biziq">10</span></div>
+<div class="report-row"><span>内容创作力</span><span id="s-content">5</span></div>
+</div>
+<div class="report-block">
+<div class="report-title">体力 VITALITY <span id="sub-vital" style="float:right;color:var(--green);"></span></div>
+<div class="report-row"><span>体重管控</span><span id="s-weight">0</span></div>
+<div class="report-row"><span>精力值</span><span id="s-energy">10</span></div>
+<div class="report-row"><span>颈椎状态</span><span id="s-neck">5</span></div>
+</div>
+<div class="report-block">
+<div class="report-title">体重追踪 (目标: 75kg)</div>
+<div class="input-row">
+<input id="weight-input" class="input-field" type="number" step="0.1" placeholder="今日体重(kg)">
+<button class="btn btn-sm" onclick="logWeight()">记录</button>
+</div>
+<div class="weight-log" id="weight-log"></div>
+</div>
+<div class="report-block">
+<div class="report-title">收入记录</div>
+<div class="input-row">
+<input id="income-input" class="input-field" type="number" placeholder="金额(元)">
+<select id="income-type" class="input-field" style="max-width:100px;">
+<option value="active">主动</option>
+<option value="passive">被动</option>
+</select>
+<button class="btn btn-sm" onclick="logIncome()">记录</button>
+</div>
+<div class="report-row" style="margin-top:8px;"><span>本月主动收入</span><span id="month-active">0</span></div>
+<div class="report-row"><span>本月被动收入</span><span id="month-passive">0</span></div>
+<div class="report-row"><span>被动占比</span><span id="passive-ratio">0%</span></div>
+</div>
+</div>
+</div>
+
+<!-- 成就页 -->
+<div id="page-achieve" class="page">
+<div style="padding:20px 16px;">
+<div class="section-title" style="font-size:18px;">成就殿堂</div>
+<div id="achieve-list"></div>
+</div>
+</div>
+
+<!-- 商店页 -->
+<div id="page-shop" class="page">
+<div style="padding:20px 16px;">
+<div class="section-title" style="font-size:18px;">奖励商店 <span style="font-size:14px;color:var(--gold);margin-left:8px;">可用: <span id="shop-exp">0</span> EXP</span></div>
+<div id="shop-list"></div>
+</div>
+</div>
+
+<!-- 战报页 -->
+<div id="page-report" class="page">
+<div style="padding:20px 16px;">
+<div class="section-title" style="font-size:18px;">每日战报</div>
+<div class="report-block" style="text-align:center;">
+<div style="font-size:12px;color:var(--muted);">今日获得经验</div>
+<div class="summary-num" style="color:var(--primary);" id="today-exp">+0 EXP</div>
+</div>
+<div style="display:flex;gap:8px;">
+<div class="report-block" style="flex:1;text-align:center;">
+<div style="font-size:11px;color:var(--gold);">财力</div>
+<div id="rpt-wealth" style="font-size:18px;font-weight:700;">0/5</div>
+</div>
+<div class="report-block" style="flex:1;text-align:center;">
+<div style="font-size:11px;color:var(--blue);">智力</div>
+<div id="rpt-intel" style="font-size:18px;font-weight:700;">0/4</div>
+</div>
+<div class="report-block" style="flex:1;text-align:center;">
+<div style="font-size:11px;color:var(--green);">体力</div>
+<div id="rpt-vital" style="font-size:18px;font-weight:700;">0/6</div>
+</div>
+</div>
+<div class="report-block">
+<div class="report-title">连续打卡</div>
+<div class="report-row"><span>运动</span><span id="streak-exercise">0天</span></div>
+<div class="report-row"><span>早睡</span><span id="streak-sleep">0天</span></div>
+<div class="report-row"><span>学习</span><span id="streak-study">0天</span></div>
+<div class="report-row"><span>短视频控制</span><span id="streak-video">0天</span></div>
+</div>
+<div class="report-block">
+<div class="report-title">Debuff状态</div>
+<div id="rpt-debuffs" style="font-size:13px;color:var(--red);">无</div>
+</div>
+</div>
+</div>
+
+<div class="tab-bar">
+<div class="tab active" onclick="switchTab('home')"><div class="tab-icon">&#x1F3E0;</div><div class="tab-label">主页</div></div>
+<div class="tab" onclick="switchTab('stats')"><div class="tab-icon">&#x1F4CA;</div><div class="tab-label">属性</div></div>
+<div class="tab" onclick="switchTab('achieve')"><div class="tab-icon">&#x1F3C6;</div><div class="tab-label">成就</div></div>
+<div class="tab" onclick="switchTab('shop')"><div class="tab-icon">&#x1F6D2;</div><div class="tab-label">商店</div></div>
+<div class="tab" onclick="switchTab('report')"><div class="tab-icon">&#x1F4D1;</div><div class="tab-label">战报</div></div>
+</div>
+
+<script>
+// ===== DATA =====
+const LEVELS=[{lv:1,title:'初出茅庐',exp:0},{lv:5,title:'独行侠',exp:500},{lv:10,title:'百人师',exp:2000},{lv:15,title:'千人将',exp:5000},{lv:20,title:'万人敌',exp:10000},{lv:30,title:'一方诸侯',exp:25000},{lv:50,title:'天下军师',exp:100000}];
+
+const QUESTS=[
+{id:'w1',name:'完成1个脉冲核心产出',exp:30,cat:'wealth'},
+{id:'w2',name:'发布1条内容(小红书/公众号)',exp:20,cat:'wealth'},
+{id:'w3',name:'完成1次客户沟通/商务对接',exp:25,cat:'wealth'},
+{id:'w4',name:'产生实际收入',exp:50,cat:'wealth'},
+{id:'w5',name:'录制课程1节',exp:40,cat:'wealth'},
+{id:'i1',name:'阅读/学习30分钟',exp:15,cat:'intel'},
+{id:'i2',name:'掌握1个新AI工具/功能',exp:25,cat:'intel'},
+{id:'i3',name:'深度思考(商业分析/战略)',exp:20,cat:'intel'},
+{id:'i4',name:'写1篇学习笔记/复盘',exp:15,cat:'intel'},
+{id:'v1',name:'空腹称重并记录',exp:10,cat:'vital'},
+{id:'v2',name:'运动30分钟以上',exp:25,cat:'vital'},
+{id:'v3',name:'23:00前熄灯',exp:20,cat:'vital'},
+{id:'v4',name:'颈椎保护(脉冲规则)',exp:10,cat:'vital'},
+{id:'v5',name:'三餐正常+暖食',exp:10,cat:'vital'},
+{id:'v6',name:'短视频不超30分钟',exp:15,cat:'vital'},
+];
+
+const ACHIEVEMENTS=[
+{id:'a1',name:'第一桶金',desc:'通过OPC/课程赚到第一笔钱',exp:100,icon:'&#x1F4B0;',cat:'wealth'},
+{id:'a2',name:'月入过万',desc:'单月收入超过10000元',exp:200,icon:'&#x1F4B5;',cat:'wealth'},
+{id:'a3',name:'月入五万',desc:'单月收入超过50000元',exp:500,icon:'&#x1F48E;',cat:'wealth'},
+{id:'a4',name:'睡后收入',desc:'首次产生被动收入',exp:300,icon:'&#x1F4A4;',cat:'wealth'},
+{id:'a5',name:'课程上线',desc:'OPC实战营正式开课',exp:200,icon:'&#x1F393;',cat:'wealth'},
+{id:'a6',name:'百人社群',desc:'付费社群超过100人',exp:300,icon:'&#x1F465;',cat:'wealth'},
+{id:'a7',name:'AI武器大师',desc:'掌握5个以上AI工具',exp:150,icon:'&#x1F916;',cat:'intel'},
+{id:'a8',name:'万字输出',desc:'累计发布内容超10000字',exp:100,icon:'&#x270D;',cat:'intel'},
+{id:'a9',name:'十万字输出',desc:'累计发布内容超100000字',exp:500,icon:'&#x1F4DA;',cat:'intel'},
+{id:'a10',name:'连续学习7天',desc:'连续7天完成学习任务',exp:100,icon:'&#x1F525;',cat:'intel'},
+{id:'a11',name:'跨境实操',desc:'完成第一个跨境电商订单',exp:200,icon:'&#x1F30D;',cat:'intel'},
+{id:'a12',name:'85kg',desc:'体重降到85kg',exp:150,icon:'&#x2B07;',cat:'vital'},
+{id:'a13',name:'80kg',desc:'体重降到80kg',exp:300,icon:'&#x1F3CB;',cat:'vital'},
+{id:'a14',name:'75kg',desc:'体重降到75kg(终极目标)',exp:500,icon:'&#x1F451;',cat:'vital'},
+{id:'a15',name:'连续运动7天',desc:'连续7天运动30分钟+',exp:100,icon:'&#x1F3C3;',cat:'vital'},
+{id:'a16',name:'早睡21天',desc:'累计21天23:00前熄灯',exp:200,icon:'&#x1F319;',cat:'vital'},
+{id:'a17',name:'戒刷达人',desc:'连续7天短视频不超30分钟',exp:150,icon:'&#x1F6AB;',cat:'vital'},
+];
+
+const SHOP=[
+{id:'s1',name:'买一本想看的书',cost:100,icon:'&#x1F4D6;'},
+{id:'s2',name:'点一顿好外卖',cost:150,icon:'&#x1F356;'},
+{id:'s3',name:'打一场篮球赛',cost:50,icon:'&#x1F3C0;'},
+{id:'s4',name:'半天自由时间',cost:300,icon:'&#x1F3DD;'},
+{id:'s5',name:'给老婆买礼物',cost:400,icon:'&#x1F381;'},
+{id:'s6',name:'新数码配件',cost:500,icon:'&#x1F3A7;'},
+{id:'s7',name:'旅行基金+500元',cost:1000,icon:'&#x2708;'},
+];
+
+// ===== STATE =====
+function getToday(){return new Date().toISOString().slice(0,10);}
+function loadState(){
+  let s=localStorage.getItem('gamelife');
+  if(s)return JSON.parse(s);
+  return{
+    totalExp:0,wealth:10,intel:25,vital:15,
+    sub:{active:5,passive:0,asset:5,aitech:10,biziq:10,content:5,weight:0,energy:10,neck:5},
+    quests:{},questDate:'',
+    achievements:[],
+    weights:[],
+    incomes:[],
+    debuffs:[],
+    streaks:{exercise:0,sleep:0,study:0,video:0},
+    redeemed:[],
+    spentExp:0
+  };
+}
+function saveState(){localStorage.setItem('gamelife',JSON.stringify(state));}
+let state=loadState();
+
+// ===== LEVEL =====
+function getLevel(exp){
+  let l=LEVELS[0];
+  for(let i=LEVELS.length-1;i>=0;i--){if(exp>=LEVELS[i].exp){l=LEVELS[i];break;}}
+  return l;
+}
+function getNextLevel(exp){
+  for(let i=0;i<LEVELS.length;i++){if(exp<LEVELS[i].exp)return LEVELS[i];}
+  return LEVELS[LEVELS.length-1];
+}
+
+// ===== RENDER =====
+function render(){
+  let lv=getLevel(state.totalExp);
+  let nxt=getNextLevel(state.totalExp);
+  document.getElementById('level-display').textContent='Lv.'+lv.lv;
+  document.getElementById('title-display').textContent=lv.title;
+  let pct=nxt.exp>lv.exp?((state.totalExp-lv.exp)/(nxt.exp-lv.exp)*100):100;
+  document.getElementById('exp-bar').style.width=pct+'%';
+  document.getElementById('exp-label').textContent='EXP: '+state.totalExp+' / '+nxt.exp;
+  document.getElementById('next-level').textContent='下一级: Lv.'+nxt.lv+' '+nxt.title;
+  document.getElementById('wealth-val').textContent=state.wealth;
+  document.getElementById('intel-val').textContent=state.intel;
+  document.getElementById('vital-val').textContent=state.vital;
+  document.getElementById('shop-exp').textContent=state.totalExp-state.spentExp;
+
+  // Sub stats
+  document.getElementById('sub-wealth').textContent=state.wealth+'/100';
+  document.getElementById('sub-intel').textContent=state.intel+'/100';
+  document.getElementById('sub-vital').textContent=state.vital+'/100';
+  ['active','passive','asset'].forEach(k=>document.getElementById('s-'+k).textContent=state.sub[k]);
+  document.getElementById('s-aitech').textContent=state.sub.aitech;
+  document.getElementById('s-biziq').textContent=state.sub.biziq;
+  document.getElementById('s-content').textContent=state.sub.content;
+  document.getElementById('s-weight').textContent=state.sub.weight;
+  document.getElementById('s-energy').textContent=state.sub.energy;
+  document.getElementById('s-neck').textContent=state.sub.neck;
+
+  renderQuests();
+  renderAchievements();
+  renderShop();
+  renderReport();
+  renderDebuffs();
+  renderWeightLog();
+  renderIncome();
+  drawRadar();
+}
+
+function renderQuests(){
+  let today=getToday();
+  if(state.questDate!==today){state.quests={};state.questDate=today;saveState();}
+  let html='';
+  let done=0;
+  QUESTS.forEach(q=>{
+    let isDone=state.quests[q.id]||false;
+    if(isDone)done++;
+    let catClass=q.cat==='wealth'?'cat-wealth':q.cat==='intel'?'cat-intel':'cat-vital';
+    let catLabel=q.cat==='wealth'?'财力':q.cat==='intel'?'智力':'体力';
+    html+=`<div class="quest-card ${isDone?'done':''}" onclick="toggleQuest('${q.id}')">
+      <div class="quest-check"></div>
+      <div class="quest-info"><div class="quest-name">${q.name}</div><div class="quest-exp">+${q.exp} EXP</div></div>
+      <span class="quest-cat ${catClass}">${catLabel}</span></div>`;
+  });
+  document.getElementById('quest-list').innerHTML=html;
+  document.getElementById('quest-count').textContent=done+'/'+QUESTS.length;
+}
+
+function toggleQuest(id){
+  let q=QUESTS.find(x=>x.id===id);
+  if(!q)return;
+  let wasDone=state.quests[id]||false;
+  if(wasDone){
+    state.quests[id]=false;
+    state.totalExp-=q.exp;
+    if(q.cat==='wealth')state.wealth=Math.max(0,state.wealth-1);
+    if(q.cat==='intel')state.intel=Math.max(0,state.intel-1);
+    if(q.cat==='vital')state.vital=Math.max(0,state.vital-1);
+    showToast('-'+q.exp+' EXP','warn');
+  }else{
+    state.quests[id]=true;
+    state.totalExp+=q.exp;
+    if(q.cat==='wealth')state.wealth=Math.min(100,state.wealth+1);
+    if(q.cat==='intel')state.intel=Math.min(100,state.intel+1);
+    if(q.cat==='vital')state.vital=Math.min(100,state.vital+1);
+    showToast('+'+q.exp+' EXP !!');
+    checkLevelUp();
+  }
+  saveState();render();
+}
+
+function checkLevelUp(){
+  let lv=getLevel(state.totalExp);
+  let prev=getLevel(state.totalExp-(QUESTS.find(x=>state.quests[x.id])?.exp||0));
+  if(lv.lv>prev.lv){
+    setTimeout(()=>showModal('升级!','恭喜达到 Lv.'+lv.lv+' '+lv.title+'!'),500);
+  }
+}
+
+function renderAchievements(){
+  let html='';
+  ACHIEVEMENTS.forEach(a=>{
+    let unlocked=state.achievements.includes(a.id);
+    html+=`<div class="achieve-card ${unlocked?'':'locked'}" onclick="unlockAchieve('${a.id}')">
+      <div class="achieve-icon">${a.icon}</div>
+      <div class="achieve-info"><div class="achieve-name">${a.name}</div><div class="achieve-desc">${a.desc}</div></div>
+      <div class="achieve-reward">${unlocked?'已解锁':'+'+a.exp+' EXP'}</div></div>`;
+  });
+  document.getElementById('achieve-list').innerHTML=html;
+}
+
+function unlockAchieve(id){
+  if(state.achievements.includes(id))return;
+  let a=ACHIEVEMENTS.find(x=>x.id===id);
+  if(!a)return;
+  if(confirm('确认解锁成就「'+a.name+'」? 获得+'+a.exp+' EXP')){
+    state.achievements.push(id);
+    state.totalExp+=a.exp;
+    showToast('成就解锁: '+a.name+' +'+a.exp+' EXP!');
+    saveState();render();
+  }
+}
+
+function renderShop(){
+  let avail=state.totalExp-state.spentExp;
+  let html='';
+  SHOP.forEach(s=>{
+    html+=`<div class="shop-card" onclick="buyReward('${s.id}')">
+      <div style="font-size:24px;">${s.icon}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:500;">${s.name}</div></div>
+      <div class="shop-cost">${s.cost} EXP</div></div>`;
+  });
+  document.getElementById('shop-list').innerHTML=html;
+}
+
+function buyReward(id){
+  let s=SHOP.find(x=>x.id===id);
+  if(!s)return;
+  let avail=state.totalExp-state.spentExp;
+  if(avail<s.cost){showToast('EXP不足! 需要'+s.cost+'，当前'+avail,'warn');return;}
+  if(confirm('兑换「'+s.name+'」? 消耗'+s.cost+' EXP')){
+    state.spentExp+=s.cost;
+    state.redeemed.push({id:s.id,date:getToday()});
+    showToast('兑换成功: '+s.name+'!');
+    saveState();render();
+  }
+}
+
+function renderDebuffs(){
+  let c=document.getElementById('debuff-container');
+  if(state.debuffs.length===0){c.innerHTML='';return;}
+  let html='';
+  state.debuffs.forEach(d=>{
+    html+=`<div class="debuff-bar"><div class="icon">&#x26A0;</div><div class="text">${d}</div></div>`;
+  });
+  c.innerHTML=html;
+}
+
+function renderReport(){
+  let today=getToday();
+  let todayExp=0;
+  let wDone=0,wTotal=0,iDone=0,iTotal=0,vDone=0,vTotal=0;
+  QUESTS.forEach(q=>{
+    if(q.cat==='wealth'){wTotal++;if(state.quests[q.id]){wDone++;todayExp+=q.exp;}}
+    if(q.cat==='intel'){iTotal++;if(state.quests[q.id]){iDone++;todayExp+=q.exp;}}
+    if(q.cat==='vital'){vTotal++;if(state.quests[q.id]){vDone++;todayExp+=q.exp;}}
+  });
+  document.getElementById('today-exp').textContent='+'+todayExp+' EXP';
+  document.getElementById('rpt-wealth').textContent=wDone+'/'+wTotal;
+  document.getElementById('rpt-intel').textContent=iDone+'/'+iTotal;
+  document.getElementById('rpt-vital').textContent=vDone+'/'+vTotal;
+  document.getElementById('streak-exercise').textContent=state.streaks.exercise+'天';
+  document.getElementById('streak-sleep').textContent=state.streaks.sleep+'天';
+  document.getElementById('streak-study').textContent=state.streaks.study+'天';
+  document.getElementById('streak-video').textContent=state.streaks.video+'天';
+  document.getElementById('rpt-debuffs').textContent=state.debuffs.length?state.debuffs.join(', '):'无';
+}
+
+function logWeight(){
+  let v=parseFloat(document.getElementById('weight-input').value);
+  if(!v||v<40||v>200){showToast('请输入有效体重','warn');return;}
+  state.weights.push({date:getToday(),kg:v});
+  document.getElementById('weight-input').value='';
+  showToast('体重已记录: '+v+'kg');
+  saveState();renderWeightLog();
+}
+
+function renderWeightLog(){
+  let html='';
+  let sorted=[...state.weights].reverse().slice(0,20);
+  sorted.forEach((w,i)=>{
+    let change='';
+    if(i<sorted.length-1){let diff=(w.kg-sorted[i+1].kg).toFixed(1);change=diff>0?'+'+diff+'kg':diff+'kg';}
+    html+=`<div class="weight-row"><span>${w.date}</span><span>${w.kg}kg</span><span style="color:${change.startsWith('+')?'var(--red)':'var(--green)'}">${change}</span></div>`;
+  });
+  document.getElementById('weight-log').innerHTML=html||'<div style="font-size:12px;color:var(--muted);padding:8px 0;">暂无记录</div>';
+}
+
+function logIncome(){
+  let v=parseFloat(document.getElementById('income-input').value);
+  if(!v||v<=0){showToast('请输入有效金额','warn');return;}
+  let type=document.getElementById('income-type').value;
+  state.incomes.push({date:getToday(),amount:v,type:type});
+  document.getElementById('income-input').value='';
+  showToast('收入已记录: '+v+'元 ('+({active:'主动',passive:'被动'}[type])+')');
+  if(type==='passive'&&!state.achievements.includes('a4')){
+    state.achievements.push('a4');state.totalExp+=300;
+    showToast('成就解锁: 睡后收入 +300 EXP!');
+  }
+  saveState();renderIncome();render();
+}
+
+function renderIncome(){
+  let month=getToday().slice(0,7);
+  let active=0,passive=0;
+  state.incomes.filter(i=>i.date.startsWith(month)).forEach(i=>{
+    if(i.type==='active')active+=i.amount;else passive+=i.amount;
+  });
+  document.getElementById('month-active').textContent=active.toFixed(0)+'元';
+  document.getElementById('month-passive').textContent=passive.toFixed(0)+'元';
+  let total=active+passive;
+  document.getElementById('passive-ratio').textContent=total?((passive/total*100).toFixed(1)+'%'):'0%';
+}
+
+// ===== RADAR =====
+function drawRadar(){
+  let c=document.getElementById('radar');
+  if(!c)return;
+  let ctx=c.getContext('2d');
+  let w=c.width,h=c.height,cx=w/2,cy=h/2,r=100;
+  ctx.clearRect(0,0,w,h);
+  let labels=['财力','智力','体力'];
+  let vals=[state.wealth,state.intel,state.vital];
+  let angles=labels.map((_,i)=>-Math.PI/2+i*2*Math.PI/3);
+  // Grid
+  [0.25,0.5,0.75,1].forEach(s=>{
+    ctx.beginPath();
+    angles.forEach((a,i)=>{let x=cx+Math.cos(a)*r*s,y=cy+Math.sin(a)*r*s;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.closePath();ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.stroke();
+  });
+  // Axes
+  angles.forEach(a=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.strokeStyle='#444';ctx.stroke();});
+  // Data
+  ctx.beginPath();
+  angles.forEach((a,i)=>{let v=vals[i]/100;let x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.closePath();ctx.fillStyle='rgba(108,92,231,0.25)';ctx.fill();ctx.strokeStyle='#6c5ce7';ctx.lineWidth=2;ctx.stroke();
+  // Points & Labels
+  let colors=['#f9ca24','#74b9ff','#00b894'];
+  angles.forEach((a,i)=>{
+    let v=vals[i]/100;
+    let x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=colors[i];ctx.fill();
+    let lx=cx+Math.cos(a)*(r+20),ly=cy+Math.sin(a)*(r+20);
+    ctx.fillStyle=colors[i];ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(labels[i]+' '+vals[i],lx,ly);
+  });
+}
+
+// ===== UI =====
+function switchTab(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='stats')setTimeout(drawRadar,100);
+}
+
+function showToast(msg,type){
+  let t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type==='warn'?' warn':'');
+  setTimeout(()=>t.className='toast',2000);
+}
+
+function showModal(title,text){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-text').textContent=text;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// Init
+render();
+</script>
+</body>
+</html>
