@@ -119,10 +119,37 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .price-row:hover{background:rgba(255,255,255,0.02);}
 .price-row:last-child{border:none;}
 
+/* === IMPORT === */
+.import-drop{border:2px dashed rgba(255,202,40,0.3);border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.3s;background:rgba(255,202,40,0.03);margin-bottom:14px;}
+.import-drop:hover,.import-drop.dragover{border-color:var(--gold);background:rgba(255,202,40,0.08);}
+.import-drop-icon{font-size:32px;margin-bottom:6px;}
+.import-drop-text{font-size:13px;color:var(--sub);}
+.import-drop-hint{font-size:10px;color:var(--sub);margin-top:6px;opacity:0.7;}
+.import-source{display:flex;gap:8px;margin-bottom:14px;}
+.import-source-tag{flex:1;padding:8px;border-radius:10px;text-align:center;font-size:12px;font-weight:bold;border:1px solid var(--border);background:rgba(13,17,23,0.5);color:var(--sub);cursor:pointer;transition:all 0.2s;}
+.import-source-tag.active-ali{border-color:rgba(100,181,246,0.5);color:var(--blue);background:var(--blue-dim);}
+.import-source-tag.active-wx{border-color:rgba(45,212,168,0.5);color:var(--green);background:var(--green-dim);}
+.import-preview{max-height:40vh;overflow-y:auto;margin-bottom:12px;}
+.import-item{display:flex;align-items:center;gap:8px;padding:10px 8px;border-bottom:1px solid var(--border);font-size:12px;}
+.import-item:last-child{border:none;}
+.imp-chk{width:18px;height:18px;border:2px solid var(--sub);border-radius:4px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.2s;}
+.imp-chk.checked{background:var(--gold);border-color:var(--gold);color:#000;}
+.imp-chk.checked::after{content:'✓';}
+.imp-info{flex:1;min-width:0;}
+.imp-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.imp-date{font-size:10px;color:var(--sub);}
+.imp-cat{font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(255,202,40,0.1);color:var(--gold);white-space:nowrap;}
+.imp-cat select{background:transparent;border:none;color:var(--gold);font-size:10px;outline:none;padding:0;cursor:pointer;}
+.imp-amt{font-weight:bold;white-space:nowrap;text-align:right;}
+.import-stats{display:flex;gap:12px;justify-content:center;margin-bottom:12px;font-size:12px;}
+.import-stats span{padding:4px 10px;border-radius:8px;background:rgba(13,17,23,0.6);border:1px solid var(--border);}
+.import-dup{opacity:0.35;text-decoration:line-through;}
+
 /* modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
 .modal{background:var(--card-solid);border:1px solid var(--border);border-radius:18px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.modal.modal-lg{max-width:500px;max-height:90vh;}
 .modal h3{color:var(--gold);margin-bottom:15px;font-size:16px;}
 .modal label{display:block;font-size:12px;color:var(--sub);margin-top:12px;}
 .modal input,.modal select,.modal textarea{width:100%;padding:11px;background:rgba(13,17,23,0.6);border:1px solid var(--border);color:#fff;border-radius:10px;font-size:13px;outline:none;margin-top:4px;transition:border-color 0.2s;}
@@ -171,7 +198,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       </div>
       <div class="c"><div class="c-h"><span>罗文的每日任务</span></div><div class="c-b" id="quest-list"></div></div>
       <div class="c">
-        <div class="c-h"><span>快速记账</span><span id="d-budget2" style="font-size:11px;color:var(--sub);">剩余55</span></div>
+        <div class="c-h"><span>快速记账</span><div><button class="btn btn-blue btn-sm" onclick="openImportModal()" style="margin-right:6px;">导入账单</button><span id="d-budget2" style="font-size:11px;color:var(--sub);">剩余55</span></div></div>
         <div class="c-b">
           <div class="form-row">
             <input type="number" id="r-amt" placeholder="金额" step="0.01">
@@ -315,6 +342,42 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="form-row" style="margin-top:15px;">
       <button class="btn btn-green" onclick="saveAch()" style="flex:1;">解锁成就</button>
       <button class="btn btn-red" onclick="closeModal('ach-modal')" style="flex:0.5;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-bg" id="import-modal">
+  <div class="modal modal-lg">
+    <h3>导入支付账单</h3>
+    <div id="import-step1">
+      <div class="import-source">
+        <div class="import-source-tag" id="tag-ali" onclick="setImportSource('ali')">支付宝</div>
+        <div class="import-source-tag" id="tag-wx" onclick="setImportSource('wx')">微信支付</div>
+      </div>
+      <div class="import-drop" id="import-drop" onclick="document.getElementById('import-file').click()">
+        <div class="import-drop-icon">📂</div>
+        <div class="import-drop-text">点击选择CSV账单文件</div>
+        <div class="import-drop-hint" id="import-hint">支付宝: 我的 > 账单 > ... > 开具交易流水<br>微信: 我 > 服务 > 钱包 > 账单 > ... > 导出账单</div>
+      </div>
+      <input type="file" id="import-file" accept=".csv,.CSV" style="display:none" onchange="handleImportFile(this)">
+    </div>
+    <div id="import-step2" style="display:none;">
+      <div class="import-stats">
+        <span style="color:var(--green)">收入: <b id="imp-inc-count">0</b>笔</span>
+        <span style="color:var(--red)">支出: <b id="imp-exp-count">0</b>笔</span>
+        <span style="color:var(--sub)">重复: <b id="imp-dup-count">0</b>笔</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:11px;color:var(--sub);">预览 (点击勾选导入项)</span>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.08);color:var(--sub);" onclick="toggleAllImport()">全选/全不选</button>
+      </div>
+      <div class="import-preview" id="import-preview"></div>
+      <div class="form-row" style="margin-top:12px;">
+        <button class="btn btn-gold" onclick="confirmImport()" style="flex:1;">确认导入</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.08);color:var(--sub);flex:0.5;" onclick="resetImport()">重选</button>
+        <button class="btn btn-red btn-sm" onclick="closeModal('import-modal');resetImport()" style="flex:0.4;">取消</button>
+      </div>
     </div>
   </div>
 </div>
@@ -740,6 +803,313 @@ function saveAch(){
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ===== BILL IMPORT SYSTEM =====
+let importSource='ali';
+let importItems=[];
+
+const CAT_RULES=[
+  {keys:['美团','饿了么','麦当劳','肯德基','星巴克','瑞幸','奶茶','咖啡','面馆','火锅','烧烤','食堂','早餐','午餐','晚餐','小吃','快餐','外卖','餐饮','饮料','蜜雪','茶百道','喜茶','霸王茶姬','海底捞','必胜客','食品','水果','蛋糕','面包','便当'],cat:'餐饮'},
+  {keys:['滴滴','高德','出行','地铁','公交','打车','加油','充电','停车','铁路','火车','飞机','航空','机票','车费','摩托','骑行','哈啰','青桔','美团单车'],cat:'交通'},
+  {keys:['超市','便利店','全家','7-11','711','罗森','日用','洗衣','理发','快递','菜鸟','顺丰','中通','圆通','韵达','药','医','诊所','体检','牙'],cat:'日用'},
+  {keys:['会员','订阅','VIP','月卡','年卡','ChatGPT','OpenAI','Claude','Midjourney','云服务','阿里云','腾讯云','域名','服务器','工具','软件','App Store','Google Play','充值'],cat:'工具'},
+  {keys:['转账','红包','还款','信用卡','花呗','借呗','微粒贷','放心借','白条','分期'],cat:'转账'},
+  {keys:['房租','租金','物业','水电','燃气','电费','水费','暖气'],cat:'房租'},
+  {keys:['课程','培训','学费','教育','网课','知识星球','得到','喜马拉雅'],cat:'课程/培训'},
+  {keys:['工资','薪资','报酬','佣金','提成','稿费','劳务','服务费','咨询费'],cat:'AI服务'},
+];
+
+function guessCategory(desc){
+  let d=desc.toLowerCase();
+  for(let rule of CAT_RULES){
+    for(let k of rule.keys){
+      if(d.includes(k.toLowerCase())) return rule.cat;
+    }
+  }
+  return '其他';
+}
+
+function catToType(cat,direction){
+  if(direction==='income'){
+    let incCats=['课程/培训','AI服务','接单','房租','其他收入'];
+    if(incCats.includes(cat)) return 'income';
+    return 'income';
+  }
+  return 'expense';
+}
+
+function setImportSource(src){
+  importSource=src;
+  document.getElementById('tag-ali').className='import-source-tag'+(src==='ali'?' active-ali':'');
+  document.getElementById('tag-wx').className='import-source-tag'+(src==='wx'?' active-wx':'');
+}
+
+function openImportModal(){
+  resetImport();
+  document.getElementById('import-modal').classList.add('open');
+  setImportSource('ali');
+}
+
+function resetImport(){
+  importItems=[];
+  document.getElementById('import-step1').style.display='block';
+  document.getElementById('import-step2').style.display='none';
+  document.getElementById('import-file').value='';
+}
+
+function parseCSVLine(line){
+  let result=[];
+  let current='';
+  let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    let ch=line[i];
+    if(inQuotes){
+      if(ch==='"'&&line[i+1]==='"'){current+='"';i++;}
+      else if(ch==='"'){inQuotes=false;}
+      else current+=ch;
+    }else{
+      if(ch==='"'){inQuotes=true;}
+      else if(ch===','){result.push(current.trim());current='';}
+      else current+=ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseAlipayCSV(text){
+  let lines=text.split(/\r?\n/);
+  let headerIdx=-1;
+  for(let i=0;i<lines.length;i++){
+    let l=lines[i].trim();
+    if(l.startsWith('交易号')||l.includes('交易号')){headerIdx=i;break;}
+    if(l.includes('交易创建时间')&&l.includes('金额')){headerIdx=i;break;}
+  }
+  if(headerIdx===-1) return [];
+
+  let headers=parseCSVLine(lines[headerIdx]);
+  let colMap={};
+  headers.forEach((h,i)=>{
+    let hc=h.replace(/\s/g,'');
+    if(hc.includes('交易创建时间')||hc==='交易时间')colMap.time=i;
+    if(hc==='收/支'||hc==='收/支')colMap.direction=i;
+    if(hc.includes('金额'))colMap.amount=i;
+    if(hc.includes('商品名称')||hc==='商品说明'||hc.includes('商品'))colMap.goods=i;
+    if(hc.includes('交易对方')||hc.includes('对方'))colMap.counterpart=i;
+    if(hc.includes('交易状态')||hc==='当前状态')colMap.status=i;
+  });
+
+  let items=[];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    let l=lines[i].trim();
+    if(!l||l.startsWith('---')||l.startsWith('交易号')||l.includes('导出时间'))continue;
+    let cols=parseCSVLine(l);
+    if(cols.length<4)continue;
+
+    let timeStr=cols[colMap.time]||'';
+    let direction=(cols[colMap.direction]||'').trim();
+    let amtStr=(cols[colMap.amount]||'').replace(/[¥￥,\s]/g,'');
+    let goods=(cols[colMap.goods]||'').trim();
+    let counterpart=(cols[colMap.counterpart]||'').trim();
+    let status=(cols[colMap.status]||'').trim();
+
+    if(status&&(status.includes('关闭')||status.includes('退款成功')))continue;
+    if(direction==='不计收支'||direction==='')continue;
+
+    let amt=parseFloat(amtStr);
+    if(isNaN(amt)||amt<=0)continue;
+
+    let date=timeStr.slice(0,10).replace(/\//g,'-');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+
+    let desc=goods||counterpart||'未知';
+    let isIncome=direction==='收入';
+    let cat=guessCategory(desc+' '+counterpart);
+
+    items.push({date,desc:desc.slice(0,30),detail:counterpart,amt,isIncome,cat,checked:true,dup:false,source:'alipay'});
+  }
+  return items;
+}
+
+function parseWechatCSV(text){
+  let lines=text.split(/\r?\n/);
+  let headerIdx=-1;
+  for(let i=0;i<lines.length;i++){
+    let l=lines[i].trim();
+    if(l.startsWith('交易时间')||l.includes('交易时间')){headerIdx=i;break;}
+  }
+  if(headerIdx===-1) return [];
+
+  let headers=parseCSVLine(lines[headerIdx]);
+  let colMap={};
+  headers.forEach((h,i)=>{
+    let hc=h.replace(/\s/g,'');
+    if(hc==='交易时间')colMap.time=i;
+    if(hc==='收/支')colMap.direction=i;
+    if(hc.includes('金额'))colMap.amount=i;
+    if(hc==='商品'||hc==='商品说明')colMap.goods=i;
+    if(hc==='交易对方')colMap.counterpart=i;
+    if(hc==='当前状态'||hc==='交易状态')colMap.status=i;
+    if(hc==='交易类型')colMap.txType=i;
+  });
+
+  let items=[];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    let l=lines[i].trim();
+    if(!l)continue;
+    let cols=parseCSVLine(l);
+    if(cols.length<4)continue;
+
+    let timeStr=(cols[colMap.time]||'').trim();
+    let direction=(cols[colMap.direction]||'').trim();
+    let amtStr=(cols[colMap.amount]||'').replace(/[¥￥,\s]/g,'');
+    let goods=(cols[colMap.goods]||'').trim();
+    let counterpart=(cols[colMap.counterpart]||'').trim();
+    let status=(cols[colMap.status]||'').trim();
+
+    if(status&&(status.includes('已退款')||status.includes('已关闭')||status.includes('对方已退还')))continue;
+    if(direction==='/'||direction===''||direction==='不计收支')continue;
+
+    let amt=parseFloat(amtStr);
+    if(isNaN(amt)||amt<=0)continue;
+
+    let date=timeStr.slice(0,10).replace(/\//g,'-');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+
+    let desc=goods||counterpart||'未知';
+    let isIncome=direction==='收入';
+    let cat=guessCategory(desc+' '+counterpart);
+
+    items.push({date,desc:desc.slice(0,30),detail:counterpart,amt,isIncome,cat,checked:true,dup:false,source:'wechat'});
+  }
+  return items;
+}
+
+function markDuplicates(items){
+  items.forEach(item=>{
+    let isDup=S.records.some(r=>
+      r.date===item.date&&
+      Math.abs(r.amt-item.amt)<0.01&&
+      ((item.isIncome&&r.type==='income')||(!item.isIncome&&r.type==='expense'))
+    );
+    if(isDup){item.dup=true;item.checked=false;}
+  });
+}
+
+function handleImportFile(input){
+  let file=input.files[0];
+  if(!file)return;
+  let reader=new FileReader();
+  reader.onload=function(e){
+    let text=e.target.result;
+    let isWx=text.includes('微信支付账单')||text.includes('微信支付');
+    let isAli=text.includes('支付宝')||text.includes('Alipay');
+    if(isWx){setImportSource('wx');}
+    else if(isAli){setImportSource('ali');}
+
+    if(importSource==='wx'||isWx){
+      importItems=parseWechatCSV(text);
+    }else{
+      importItems=parseAlipayCSV(text);
+    }
+
+    if(importItems.length===0){
+      toast('未识别到有效账单记录，请检查文件格式');
+      return;
+    }
+
+    markDuplicates(importItems);
+    importItems.sort((a,b)=>b.date.localeCompare(a.date));
+    renderImportPreview();
+    document.getElementById('import-step1').style.display='none';
+    document.getElementById('import-step2').style.display='block';
+    toast('解析成功! 共 '+importItems.length+' 条记录');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function renderImportPreview(){
+  let incC=0,expC=0,dupC=0;
+  let h='';
+  importItems.forEach((item,i)=>{
+    if(item.dup)dupC++;
+    if(item.isIncome)incC++;else expC++;
+    let amtColor=item.isIncome?'var(--green)':'var(--red)';
+    let sign=item.isIncome?'+':'-';
+    let dupCls=item.dup?' import-dup':'';
+    h+=`<div class="import-item${dupCls}">
+      <div class="imp-chk${item.checked?' checked':''}" onclick="toggleImportItem(${i})"></div>
+      <div class="imp-info">
+        <div class="imp-name" title="${item.desc} - ${item.detail}">${item.desc}</div>
+        <div class="imp-date">${item.date} ${item.detail?'· '+item.detail.slice(0,10):''} ${item.dup?'(重复)':''}</div>
+      </div>
+      <div class="imp-cat">
+        <select onchange="importItems[${i}].cat=this.value">
+          ${getCatOptions(item.cat,item.isIncome)}
+        </select>
+      </div>
+      <div class="imp-amt" style="color:${amtColor}">${sign}${item.amt.toFixed(2)}</div>
+    </div>`;
+  });
+  document.getElementById('import-preview').innerHTML=h;
+  document.getElementById('imp-inc-count').textContent=incC;
+  document.getElementById('imp-exp-count').textContent=expC;
+  document.getElementById('imp-dup-count').textContent=dupC;
+}
+
+function getCatOptions(selected,isIncome){
+  let expCats=['餐饮','交通','日用','工具','转账','其他'];
+  let incCats=['课程/培训','AI服务','接单','房租','其他收入'];
+  let cats=isIncome?incCats:expCats;
+  if(!cats.includes(selected))cats.push(selected);
+  return cats.map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
+}
+
+function toggleImportItem(i){
+  importItems[i].checked=!importItems[i].checked;
+  renderImportPreview();
+}
+
+function toggleAllImport(){
+  let allChecked=importItems.filter(x=>!x.dup).every(x=>x.checked);
+  importItems.forEach(x=>{if(!x.dup)x.checked=!allChecked;});
+  renderImportPreview();
+}
+
+function confirmImport(){
+  let selected=importItems.filter(x=>x.checked);
+  if(selected.length===0)return toast('请至少选择1条记录');
+  let addedInc=0,addedExp=0;
+  selected.forEach(item=>{
+    let type=item.isIncome?'income':'expense';
+    S.records.push({date:item.date,type:type,amt:item.amt,cat:item.cat,src:item.source});
+    if(item.isIncome){S.cash+=item.amt;addedInc++;}
+    else{S.cash-=item.amt;addedExp++;}
+  });
+  save();render();
+  closeModal('import-modal');
+  resetImport();
+  toast('导入成功! 收入'+addedInc+'笔, 支出'+addedExp+'笔');
+}
+
+// drag & drop support
+document.addEventListener('DOMContentLoaded',function(){
+  let drop=document.getElementById('import-drop');
+  if(!drop)return;
+  ['dragenter','dragover'].forEach(ev=>{
+    drop.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();drop.classList.add('dragover');});
+  });
+  ['dragleave','drop'].forEach(ev=>{
+    drop.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();drop.classList.remove('dragover');});
+  });
+  drop.addEventListener('drop',function(e){
+    let files=e.dataTransfer.files;
+    if(files.length>0){
+      document.getElementById('import-file').files=files;
+      handleImportFile(document.getElementById('import-file'));
+    }
+  });
+});
 
 // ===== NAV =====
 function switchTab(id,el){
